@@ -6,6 +6,10 @@
     <title>Groq AI Chat - Glassmorphism</title>
     <!-- Marked.js для рендеринга Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- KaTeX для рендеринга LaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -37,6 +41,8 @@
             padding: 20px;
             overflow-y: auto;
             transition: all 0.3s ease;
+            position: relative;
+            z-index: 100;
         }
 
         .sidebar::-webkit-scrollbar {
@@ -130,15 +136,78 @@
             backdrop-filter: blur(16px);
             padding: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .menu-toggle span {
+            display: block;
+            width: 24px;
+            height: 2px;
+            background: white;
+            margin: 5px 0;
+            transition: all 0.3s ease;
         }
 
         .header h1 {
             font-size: 24px;
-            margin-bottom: 15px;
             background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 14px;
+        }
+
+        .icon-btn:hover {
+            background: rgba(167, 139, 250, 0.2);
+            border-color: #a78bfa;
+        }
+
+        .settings-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-panel.hidden {
+            display: none;
         }
 
         .settings-row {
@@ -183,6 +252,35 @@
         .input-group select option {
             background: #1a1a2e;
             color: white;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-group:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #7c3aed;
+        }
+
+        .checkbox-group label {
+            cursor: pointer;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
         }
 
         /* Область сообщений */
@@ -280,6 +378,23 @@
             padding: 0;
         }
 
+        .message-content img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .uploaded-file {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin: 5px 0;
+            font-size: 13px;
+        }
+
         .typing-indicator {
             display: inline-flex;
             gap: 5px;
@@ -325,6 +440,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 10px;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -335,6 +451,9 @@
             font-size: 14px;
             font-weight: 600;
             transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn-primary {
@@ -379,6 +498,16 @@
             gap: 10px;
         }
 
+        .file-upload-btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-upload-btn input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
         #messageInput {
             flex: 1;
             padding: 15px 20px;
@@ -402,6 +531,36 @@
 
         #messageInput::placeholder {
             color: rgba(255, 255, 255, 0.5);
+        }
+
+        .attached-files {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .attached-file {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .attached-file img {
+            max-width: 40px;
+            max-height: 40px;
+            border-radius: 4px;
+        }
+
+        .remove-file {
+            cursor: pointer;
+            color: #ef4444;
+            font-weight: bold;
         }
 
         .cooldown-message {
@@ -442,28 +601,60 @@
             background-clip: text;
         }
 
+        /* SVG иконки */
+        .icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
         /* Адаптивность */
         @media (max-width: 768px) {
             .sidebar {
-                width: 220px;
-            }
-
-            .message-content {
-                max-width: 85%;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .sidebar {
                 position: fixed;
                 left: -280px;
-                z-index: 1000;
                 height: 100vh;
+                z-index: 1000;
             }
 
             .sidebar.open {
                 left: 0;
             }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .settings-row {
+                flex-direction: column;
+            }
+
+            .input-group {
+                min-width: 100%;
+            }
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .overlay.active {
+            display: block;
         }
 
         .hidden {
@@ -472,26 +663,52 @@
     </style>
 </head>
 <body>
+    <div class="overlay" id="overlay"></div>
+    
     <div class="app-container">
         <!-- Боковая панель с историей чатов -->
         <aside class="sidebar" id="sidebar">
-            <h2>📜 История чатов</h2>
-            <button class="new-chat-btn" id="newChatBtn">✨ Новый чат</button>
+            <h2>История чатов</h2>
+            <button class="new-chat-btn" id="newChatBtn">
+                <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 4v16m8-8H4"/>
+                </svg>
+                Новый чат
+            </button>
             <div class="chat-history-list" id="chatHistoryList"></div>
         </aside>
 
         <!-- Основной контент -->
         <main class="main-content">
-            <!-- Заголовок и настройки -->
+            <!-- Заголовок -->
             <header class="header">
-                <h1>✨ Groq AI Chat</h1>
+                <div class="header-left">
+                    <button class="menu-toggle" id="menuToggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                    <h1>Groq AI Chat</h1>
+                </div>
+                <div class="header-right">
+                    <button class="icon-btn" id="settingsToggle" title="Настройки">
+                        <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Панель настроек -->
+            <div class="settings-panel hidden" id="settingsPanel">
                 <div class="settings-row">
                     <div class="input-group">
-                        <label for="apiKeyInput">🔑 API Ключ Groq</label>
+                        <label for="apiKeyInput">API Ключ Groq</label>
                         <input type="password" id="apiKeyInput" placeholder="gsk_...">
                     </div>
                     <div class="input-group">
-                        <label for="modelSelect">🤖 Модель</label>
+                        <label for="modelSelect">Модель</label>
                         <select id="modelSelect">
                             <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
                             <option value="llama-3.1-70b-versatile">Llama 3.1 70B Versatile</option>
@@ -505,30 +722,53 @@
                             <option value="qwen-qwq-32b-preview">Qwen QwQ 32B Preview</option>
                             <option value="llama-3.2-1b-preview">Llama 3.2 1B Preview</option>
                             <option value="llama-3.2-3b-preview">Llama 3.2 3B Preview</option>
+                            <option value="llama-3.2-11b-vision-preview">Llama 3.2 11B Vision (изображения)</option>
+                            <option value="llama-3.2-90b-vision-preview">Llama 3.2 90B Vision (изображения)</option>
                         </select>
                     </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="contentFilterCheckbox">
+                        <label for="contentFilterCheckbox">Фильтр контента (цензура)</label>
+                    </div>
                 </div>
-            </header>
+            </div>
 
             <!-- Область сообщений -->
             <div class="messages-container" id="messagesContainer">
                 <div class="empty-state">
-                    <h2>👋</h2>
+                    <h2>Добро пожаловать</h2>
                     <p>Начните новый чат, чтобы общаться с Groq AI</p>
                 </div>
             </div>
 
             <!-- Область ввода -->
             <div class="input-area">
+                <div class="attached-files" id="attachedFiles"></div>
                 <div class="input-controls">
+                    <label for="fileInput" class="btn btn-secondary file-upload-btn">
+                        <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+                        </svg>
+                        Файл
+                        <input type="file" id="fileInput" accept="image/*,.html,.txt,.pdf" multiple>
+                    </label>
                     <button class="btn btn-secondary" id="speakBtn" title="Озвучить последний ответ">
-                        🔊 Озвучить
+                        <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+                        </svg>
+                        Озвучить
                     </button>
                     <button class="btn btn-danger" id="clearChatBtn" title="Очистить чат">
-                        🗑️ Очистить
+                        <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                        Очистить
                     </button>
                     <button class="btn btn-danger hidden" id="stopBtn" title="Остановить генерацию">
-                        ⏹️ Стоп
+                        <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="6" y="6" width="12" height="12"/>
+                        </svg>
+                        Стоп
                     </button>
                 </div>
                 <div class="input-row">
@@ -538,7 +778,10 @@
                         rows="1"
                     ></textarea>
                     <button class="btn btn-primary" id="sendBtn">
-                        📤 Отправить
+                        <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                        </svg>
+                        Отправить
                     </button>
                 </div>
                 <div id="cooldownMessage" class="cooldown-message hidden"></div>
@@ -550,16 +793,19 @@
         // ==================== КОНСТАНТЫ И ПЕРЕМЕННЫЕ ====================
         const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const COOLDOWN_TIME = 3000; // 3 секунды
+        const VISION_MODELS = ['llama-3.2-11b-vision-preview', 'llama-3.2-90b-vision-preview'];
         
         let currentChatId = null;
         let chats = {};
         let lastMessageTime = 0;
         let abortController = null;
         let isGenerating = false;
+        let attachedFiles = [];
 
         // ==================== ЭЛЕМЕНТЫ DOM ====================
         const apiKeyInput = document.getElementById('apiKeyInput');
         const modelSelect = document.getElementById('modelSelect');
+        const contentFilterCheckbox = document.getElementById('contentFilterCheckbox');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
         const stopBtn = document.getElementById('stopBtn');
@@ -569,6 +815,13 @@
         const messagesContainer = document.getElementById('messagesContainer');
         const chatHistoryList = document.getElementById('chatHistoryList');
         const cooldownMessage = document.getElementById('cooldownMessage');
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const fileInput = document.getElementById('fileInput');
+        const attachedFilesContainer = document.getElementById('attachedFiles');
 
         // ==================== ИНИЦИАЛИЗАЦИЯ ====================
         function init() {
@@ -584,6 +837,32 @@
             }
 
             setupEventListeners();
+            setupMarkdownAndLatex();
+        }
+
+        function setupMarkdownAndLatex() {
+            // Настройка marked для поддержки LaTeX
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+        }
+
+        function renderLatex(element) {
+            // Рендерим LaTeX формулы с помощью KaTeX
+            try {
+                renderMathInElement(element, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\[', right: '\\]', display: true},
+                        {left: '\\(', right: '\\)', display: false}
+                    ],
+                    throwOnError: false
+                });
+            } catch (e) {
+                console.error('LaTeX render error:', e);
+            }
         }
 
         // ==================== ЗАГРУЗКА/СОХРАНЕНИЕ ДАННЫХ ====================
@@ -597,11 +876,17 @@
             if (savedModel) {
                 modelSelect.value = savedModel;
             }
+
+            const savedFilter = localStorage.getItem('groq_content_filter');
+            if (savedFilter === 'true') {
+                contentFilterCheckbox.checked = true;
+            }
         }
 
         function saveSettings() {
             localStorage.setItem('groq_api_key', apiKeyInput.value);
             localStorage.setItem('groq_model', modelSelect.value);
+            localStorage.setItem('groq_content_filter', contentFilterCheckbox.checked);
         }
 
         function loadChats() {
@@ -615,6 +900,101 @@
             localStorage.setItem('groq_chats', JSON.stringify(chats));
         }
 
+        // ==================== УПРАВЛЕНИЕ ФАЙЛАМИ ====================
+        fileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            
+            for (const file of files) {
+                // Проверяем размер файла (макс 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    showError(`Файл ${file.name} слишком большой (макс 10MB)`);
+                    continue;
+                }
+
+                if (file.type.startsWith('image/')) {
+                    // Обрабатываем изображение
+                    const base64 = await fileToBase64(file);
+                    attachedFiles.push({
+                        type: 'image',
+                        name: file.name,
+                        data: base64,
+                        mimeType: file.type
+                    });
+                } else if (file.type === 'text/html' || file.name.endsWith('.html')) {
+                    // Обрабатываем HTML
+                    const text = await file.text();
+                    attachedFiles.push({
+                        type: 'text',
+                        name: file.name,
+                        data: text,
+                        mimeType: 'text/html'
+                    });
+                } else if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+                    // Обрабатываем текстовый файл
+                    const text = await file.text();
+                    attachedFiles.push({
+                        type: 'text',
+                        name: file.name,
+                        data: text,
+                        mimeType: 'text/plain'
+                    });
+                } else {
+                    showError(`Формат файла ${file.name} не поддерживается`);
+                    continue;
+                }
+            }
+
+            renderAttachedFiles();
+            fileInput.value = '';
+        });
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderAttachedFiles() {
+            if (attachedFiles.length === 0) {
+                attachedFilesContainer.innerHTML = '';
+                return;
+            }
+
+            attachedFilesContainer.innerHTML = attachedFiles.map((file, index) => {
+                if (file.type === 'image') {
+                    return `
+                        <div class="attached-file">
+                            <img src="data:${file.mimeType};base64,${file.data}" alt="${file.name}">
+                            <span>${file.name}</span>
+                            <span class="remove-file" onclick="removeFile(${index})">×</span>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="attached-file">
+                            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/>
+                                <path d="M13 2v7h7"/>
+                            </svg>
+                            <span>${file.name}</span>
+                            <span class="remove-file" onclick="removeFile(${index})">×</span>
+                        </div>
+                    `;
+                }
+            }).join('');
+        }
+
+        function removeFile(index) {
+            attachedFiles.splice(index, 1);
+            renderAttachedFiles();
+        }
+
         // ==================== УПРАВЛЕНИЕ ЧАТАМИ ====================
         function createNewChat() {
             const chatId = Date.now().toString();
@@ -625,6 +1005,8 @@
                 createdAt: new Date().toISOString()
             };
             currentChatId = chatId;
+            attachedFiles = [];
+            renderAttachedFiles();
             saveChats();
             renderChatHistory();
             renderMessages();
@@ -632,6 +1014,8 @@
 
         function loadChat(chatId) {
             currentChatId = chatId;
+            attachedFiles = [];
+            renderAttachedFiles();
             renderMessages();
             renderChatHistory();
         }
@@ -683,7 +1067,10 @@
                     <div class="chat-date">${dateStr}</div>
                 `;
                 
-                item.addEventListener('click', () => loadChat(chat.id));
+                item.addEventListener('click', () => {
+                    loadChat(chat.id);
+                    closeSidebar();
+                });
                 chatHistoryList.appendChild(item);
             });
         }
@@ -692,7 +1079,7 @@
             if (!currentChatId || !chats[currentChatId]) {
                 messagesContainer.innerHTML = `
                     <div class="empty-state">
-                        <h2>👋</h2>
+                        <h2>Добро пожаловать</h2>
                         <p>Начните новый чат, чтобы общаться с Groq AI</p>
                     </div>
                 `;
@@ -705,7 +1092,7 @@
             if (chat.messages.length === 0) {
                 messagesContainer.innerHTML = `
                     <div class="empty-state">
-                        <h2>💬</h2>
+                        <h2>Новая беседа</h2>
                         <p>Начните беседу с вашим AI-ассистентом</p>
                     </div>
                 `;
@@ -713,13 +1100,13 @@
             }
 
             chat.messages.forEach(msg => {
-                addMessageToDOM(msg.role, msg.content, false);
+                addMessageToDOM(msg.role, msg.content, msg.files, false);
             });
 
             scrollToBottom();
         }
 
-        function addMessageToDOM(role, content, animate = true) {
+        function addMessageToDOM(role, content, files = null, animate = true) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
             if (!animate) {
@@ -729,16 +1116,43 @@
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
 
+            // Добавляем файлы если есть
+            if (files && files.length > 0) {
+                files.forEach(file => {
+                    if (file.type === 'image') {
+                        const img = document.createElement('img');
+                        img.src = `data:${file.mimeType};base64,${file.data}`;
+                        img.alt = file.name;
+                        contentDiv.appendChild(img);
+                    } else {
+                        const fileDiv = document.createElement('div');
+                        fileDiv.className = 'uploaded-file';
+                        fileDiv.innerHTML = `
+                            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/>
+                                <path d="M13 2v7h7"/>
+                            </svg>
+                            <span>${file.name}</span>
+                        `;
+                        contentDiv.appendChild(fileDiv);
+                    }
+                });
+            }
+
+            // Добавляем текстовый контент
+            const textDiv = document.createElement('div');
             if (role === 'assistant') {
-                // Рендерим Markdown
                 try {
-                    contentDiv.innerHTML = marked.parse(content);
+                    textDiv.innerHTML = marked.parse(content);
+                    // Рендерим LaTeX после вставки HTML
+                    renderLatex(textDiv);
                 } catch (e) {
-                    contentDiv.textContent = content;
+                    textDiv.textContent = content;
                 }
             } else {
-                contentDiv.textContent = content;
+                textDiv.textContent = content;
             }
+            contentDiv.appendChild(textDiv);
 
             messageDiv.appendChild(contentDiv);
             messagesContainer.appendChild(messageDiv);
@@ -780,7 +1194,7 @@
         function showError(message) {
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error-message';
-            errorDiv.textContent = `❌ Ошибка: ${message}`;
+            errorDiv.textContent = `Ошибка: ${message}`;
             messagesContainer.appendChild(errorDiv);
             scrollToBottom();
         }
@@ -794,10 +1208,18 @@
             const message = messageInput.value.trim();
             const apiKey = apiKeyInput.value.trim();
             const model = modelSelect.value;
+            const contentFilter = contentFilterCheckbox.checked;
 
-            if (!message) return;
+            if (!message && attachedFiles.length === 0) return;
             if (!apiKey) {
                 showError('Пожалуйста, введите API-ключ Groq');
+                return;
+            }
+
+            // Проверяем поддержку Vision для изображений
+            const hasImages = attachedFiles.some(f => f.type === 'image');
+            if (hasImages && !VISION_MODELS.includes(model)) {
+                showError('Для работы с изображениями выберите модель Llama 3.2 Vision');
                 return;
             }
 
@@ -806,7 +1228,7 @@
             const timeSinceLastMessage = now - lastMessageTime;
             if (timeSinceLastMessage < COOLDOWN_TIME) {
                 const remainingTime = Math.ceil((COOLDOWN_TIME - timeSinceLastMessage) / 1000);
-                cooldownMessage.textContent = `⏳ Подожди ${remainingTime} сек...`;
+                cooldownMessage.textContent = `Подожди ${remainingTime} сек...`;
                 cooldownMessage.classList.remove('hidden');
                 setTimeout(() => {
                     cooldownMessage.classList.add('hidden');
@@ -815,47 +1237,121 @@
             }
 
             lastMessageTime = now;
-
-            // Сохраняем настройки
             saveSettings();
 
-            // Добавляем сообщение пользователя
             if (!chats[currentChatId]) {
                 createNewChat();
             }
 
             const chat = chats[currentChatId];
-            chat.messages.push({
-                role: 'user',
-                content: message
+            
+            // Создаем копию файлов для сохранения
+            const messageFiles = [...attachedFiles];
+            
+            // Формируем контент сообщения
+            let userContent = [];
+            
+            // Добавляем файлы
+            messageFiles.forEach(file => {
+                if (file.type === 'image') {
+                    userContent.push({
+                        type: 'image_url',
+                        image_url: {
+                            url: `data:${file.mimeType};base64,${file.data}`
+                        }
+                    });
+                } else if (file.type === 'text') {
+                    // Для текстовых файлов добавляем их содержимое в сообщение
+                    userContent.push({
+                        type: 'text',
+                        text: `Содержимое файла ${file.name}:\n\`\`\`${file.mimeType}\n${file.data}\n\`\`\``
+                    });
+                }
             });
 
-            // Обновляем название чата (если это первое сообщение)
+            // Добавляем текст сообщения
+            if (message) {
+                userContent.push({
+                    type: 'text',
+                    text: message
+                });
+            }
+
+            // Сохраняем сообщение пользователя
+            chat.messages.push({
+                role: 'user',
+                content: message || '(файлы)',
+                files: messageFiles
+            });
+
+            // Обновляем название чата
             if (chat.messages.length === 1) {
-                chat.title = message.substring(0, 40) + (message.length > 40 ? '...' : '');
+                chat.title = message.substring(0, 40) + (message.length > 40 ? '...' : '') || 'Чат с файлами';
                 renderChatHistory();
             }
 
             saveChats();
-            addMessageToDOM('user', message);
+            addMessageToDOM('user', message || '(файлы)', messageFiles);
             messageInput.value = '';
+            attachedFiles = [];
+            renderAttachedFiles();
 
-            // Показываем индикатор печати
             showTypingIndicator();
-
-            // Отключаем кнопки
             sendBtn.disabled = true;
             stopBtn.classList.remove('hidden');
             isGenerating = true;
 
-            // Создаем AbortController для возможности отмены
             abortController = new AbortController();
 
             try {
-                const messages = chat.messages.map(msg => ({
-                    role: msg.role,
-                    content: msg.content
-                }));
+                // Формируем историю сообщений для API
+                const apiMessages = chat.messages.map(msg => {
+                    if (msg.files && msg.files.length > 0) {
+                        // Сообщение с файлами
+                        let content = [];
+                        
+                        msg.files.forEach(file => {
+                            if (file.type === 'image') {
+                                content.push({
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: `data:${file.mimeType};base64,${file.data}`
+                                    }
+                                });
+                            } else if (file.type === 'text') {
+                                content.push({
+                                    type: 'text',
+                                    text: `Файл ${file.name}:\n\`\`\`\n${file.data}\n\`\`\``
+                                });
+                            }
+                        });
+                        
+                        if (msg.content && msg.content !== '(файлы)') {
+                            content.push({
+                                type: 'text',
+                                text: msg.content
+                            });
+                        }
+                        
+                        return {
+                            role: msg.role,
+                            content: content
+                        };
+                    } else {
+                        return {
+                            role: msg.role,
+                            content: msg.content
+                        };
+                    }
+                });
+
+                // Добавляем фильтр контента в системное сообщение
+                if (contentFilter) {
+                    apiMessages.unshift({
+                        role: 'system',
+                        content: 'Ты должен фильтровать любой неприемлемый контент, включая насилие, ненависть, сексуальный контент и другие вредоносные материалы. Отвечай вежливо и безопасно.'
+                    });
+                }
 
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -865,7 +1361,7 @@
                     },
                     body: JSON.stringify({
                         model: model,
-                        messages: messages,
+                        messages: apiMessages,
                         stream: true,
                         temperature: 0.7,
                         max_tokens: 4096
@@ -880,7 +1376,6 @@
 
                 removeTypingIndicator();
 
-                // Создаем элемент для стриминга ответа
                 const assistantContentDiv = addMessageToDOM('assistant', '');
                 let fullResponse = '';
 
@@ -905,6 +1400,7 @@
                                 if (content) {
                                     fullResponse += content;
                                     assistantContentDiv.innerHTML = marked.parse(fullResponse);
+                                    renderLatex(assistantContentDiv);
                                     scrollToBottom();
                                 }
                             } catch (e) {
@@ -914,7 +1410,6 @@
                     }
                 }
 
-                // Сохраняем ответ ассистента
                 chat.messages.push({
                     role: 'assistant',
                     content: fullResponse
@@ -958,7 +1453,6 @@
                 return;
             }
 
-            // Останавливаем предыдущее озвучивание
             window.speechSynthesis.cancel();
 
             const utterance = new SpeechSynthesisUtterance(lastAssistantMessage.content);
@@ -967,6 +1461,17 @@
             utterance.pitch = 1.0;
 
             window.speechSynthesis.speak(utterance);
+        }
+
+        // ==================== МОБИЛЬНОЕ МЕНЮ ====================
+        function toggleSidebar() {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
         }
 
         // ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
@@ -978,6 +1483,14 @@
             newChatBtn.addEventListener('click', () => {
                 createNewChat();
                 messageInput.focus();
+                closeSidebar();
+            });
+
+            menuToggle.addEventListener('click', toggleSidebar);
+            overlay.addEventListener('click', closeSidebar);
+
+            settingsToggle.addEventListener('click', () => {
+                settingsPanel.classList.toggle('hidden');
             });
 
             messageInput.addEventListener('keydown', (e) => {
@@ -987,7 +1500,6 @@
                 }
             });
 
-            // Автоматическое изменение высоты textarea
             messageInput.addEventListener('input', () => {
                 messageInput.style.height = 'auto';
                 messageInput.style.height = messageInput.scrollHeight + 'px';
@@ -995,6 +1507,7 @@
 
             apiKeyInput.addEventListener('change', saveSettings);
             modelSelect.addEventListener('change', saveSettings);
+            contentFilterCheckbox.addEventListener('change', saveSettings);
         }
 
         // ==================== ЗАПУСК ====================
